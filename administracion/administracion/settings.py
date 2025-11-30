@@ -31,7 +31,6 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['gestorevento-backend.onrender.com']
 
-
 # Application definition
 
 INSTALLED_APPS = [
@@ -132,6 +131,9 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+
+# Es la ubicacion deonde se van a almazcenar todos los archivos staticos que usa DRF
+STATIC_ROOT= BASE_DIR / 'staticfiles'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
