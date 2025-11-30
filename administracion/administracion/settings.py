@@ -59,7 +59,13 @@ MIDDLEWARE = [
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
+    "https://magenta-semolina-ab8047.netlify.app"
 ]
+
+STATICFILES_DIRS = [
+BASE_DIR / "static",
+]
+
 
 ROOT_URLCONF = 'administracion.urls'
 
