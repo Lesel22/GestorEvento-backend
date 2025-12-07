@@ -59,7 +59,7 @@ MIDDLEWARE = [
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
-    "https://magenta-semolina-ab8047.netlify.app"
+    "https://calenda-d22.netlify.app/"
 ]
 
 STATICFILES_DIRS = [
