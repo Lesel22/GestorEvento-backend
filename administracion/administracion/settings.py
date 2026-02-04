@@ -29,7 +29,12 @@ SECRET_KEY = 'django-insecure-@-lbouasfikoan^67n$v&ynuo*v75_fnr#fh8vho62is9w0^$y
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['gestorevento-backend.onrender.com']
+ALLOWED_HOSTS = [
+    "127.0.0.1",
+    "localhost",
+    "calenda-d22.netlify.app",
+    'gestorevento-backend.onrender.com'
+]
 
 # Application definition
 
@@ -42,7 +47,9 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'corsheaders',
     'rest_framework',
-    'gestion'
+    'gestion',
+    'cloudinary',
+    'cloudinary_storage',
 ]
 
 MIDDLEWARE = [
@@ -155,5 +162,39 @@ REST_FRAMEWORK = {
 
 from datetime import timedelta
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(hours=1, minutes=10)
+    # 'SLIDING_TOKEN_LIFETIME': timedelta(minutes=30),
+    # 'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(hours=24),
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=2)
 }
+
+FRONTEND_URL = environ.get('FRONTEND_URL')
+
+
+#Email handler
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = environ.get('EMAIL_USERNAME')
+EMAIL_HOST_PASSWORD = environ.get('EMAIL_PASSWORD')
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+
+import cloudinary
+
+cloudinary.config(
+    cloud_name=environ.get('CLOUDINARY_NAME'),
+    api_key=environ.get('CLOUDINARY_API_KEY'),
+    api_secret= environ.get('CLOUDINARY_API_SECRET'),
+    secure=True
+)
+
+
+
+# CLOUDINARY_STORAGE = {
+#     'CLOUD_NAME': environ.get('CLOUDINARY_NAME'),
+#     'API_KEY': environ.get('CLOUDINARY_API_KEY'),
+#     'API_SECRET': environ.get('CLOUDINARY_API_SECRET'),
+# }
+
+# DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
