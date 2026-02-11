@@ -7,11 +7,26 @@ from .views import (registro,
                     GestionInscripciones,
                     obtenerInscripciones,
                     EstadoInscripcionEvento,
-                    CustomTokenObtainPairView
+                    CustomTokenObtainPairView,
+                    LoginView,
+                    MeView,
+                    RefreshView,
+                    LogoutView
                     )  
 from rest_framework_simplejwt.views import TokenObtainSlidingView, TokenRefreshSlidingView
 
+auth = "auth/"
+
 urlpatterns = [ 
+
+    #Rutas nuevo login
+    path(auth + "login", LoginView.as_view(), name="login"),
+    path(auth + "me", MeView.as_view(), name="me"),
+    path(auth + "refresh", RefreshView.as_view(), name="refresh"),
+    path(auth + "logout", LogoutView.as_view(), name="logout"),
+
+
+
     path('registro', registro),
     path('login', CustomTokenObtainPairView.as_view()),
     path('validar-usuario', validar_usuario),

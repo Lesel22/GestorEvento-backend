@@ -44,10 +44,6 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
     @classmethod
     def get_token(cls, user):
-        print(user.nombre)
-        print(user.apellido)
-        print(user.correo)
-        print(str(user.id))
         token = super().get_token(user)
 
         # Información extra dentro del token (opcional)
@@ -56,26 +52,11 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         token['correo'] = user.correo
         token['id'] = str(user.id)
 
-        print(token)
-
         return token
 
     def validate(self, attrs):
         data = super().validate(attrs)
 
-        # Información extra fuera del token (respuesta JSON)
-        # data['user'] = {
-        #     "id": str(self.user.id),
-        #     "nombre": self.user.nombre,
-        #     "apellido": self.user.apellido,
-        #     "correo": self.user.correo
-        # }
-        # data['user'] = {
-        #     "id": str(self.user.id),
-        #     "nombre": self.user.nombre,
-        #     "apellido": self.user.apellido,
-        #     "correo": self.user.correo
-        # }
         data['id'] = str(self.user.id)
         data['nombre'] = self.user.nombre
         data['apellido'] = self.user.apellido

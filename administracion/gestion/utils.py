@@ -29,10 +29,7 @@ def generar_url_firmada(instancia):
     return url
 
 def generar_url_cloudinary(instancia):
-    print(instancia.imagen)
     public_id = f"{str(instancia.id)}/{noExtension(instancia.imagen)}"
-
-    print(public_id)
     url, options = cloudinary_url(
         public_id,
         resource_type="image",      # image / video / raw

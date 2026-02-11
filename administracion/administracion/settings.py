@@ -64,10 +64,23 @@ MIDDLEWARE = [
     
 ]
 
+CORS_ALLOW_CREDENTIALS = True
+
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "https://calenda-d22.netlify.app"
 ]
+
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173",
+    "https://calenda-d22.netlify.app"
+]
+
+SESSION_COOKIE_SAMESITE = "None"
+SESSION_COOKIE_SECURE = True
+
+CSRF_COOKIE_SAMESITE = "None"
+CSRF_COOKIE_SECURE = True
 
 STATICFILES_DIRS = [
 BASE_DIR / "static",
@@ -162,9 +175,10 @@ REST_FRAMEWORK = {
 
 from datetime import timedelta
 SIMPLE_JWT = {
-    # 'SLIDING_TOKEN_LIFETIME': timedelta(minutes=30),
-    # 'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(hours=24),
-    'ACCESS_TOKEN_LIFETIME': timedelta(hours=2)
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
 }
 
 FRONTEND_URL = environ.get('FRONTEND_URL')

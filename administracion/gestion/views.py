@@ -20,6 +20,117 @@ import cloudinary
 import cloudinary.uploader
 import cloudinary.api
 
+from django.contrib.auth import authenticate
+
+from django.views.decorators.csrf import ensure_csrf_cookie
+from django.utils.decorators import method_decorator
+
+@method_decorator(ensure_csrf_cookie, name='dispatch')
+class LoginView(APIView):
+    def post(self, request):
+        email = request.data.get("email")
+        password = request.data.get("password")
+
+        user = authenticate(request, username=email, password=password)
+
+        if not user:
+            return Response(
+                {"detail": "Correo o contraseña incorrectos"},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        refresh = RefreshToken.for_user(user)
+        access = refresh.access_token
+
+        response = Response({
+            "user": {
+                "id": user.id,
+                "email": user.correo,
+            }
+        })
+
+        response.set_cookie(
+            key="access",
+            value=str(access),
+            httponly=True,
+            secure=True,
+            samesite="None",
+        )
+
+        response.set_cookie(
+            key="refresh",
+            value=str(refresh),
+            httponly=True,
+            secure=True,
+            samesite="None",
+        )
+
+        return response
+
+from rest_framework_simplejwt.authentication import JWTAuthentication
+
+from rest_framework_simplejwt.authentication import JWTAuthentication
+
+class CookieJWTAuthentication(JWTAuthentication):
+    def authenticate(self, request):
+        raw_token = request.COOKIES.get("access")
+        if not raw_token:
+            return None
+
+        validated_token = self.get_validated_token(raw_token)
+        return self.get_user(validated_token), validated_token
+
+class MeView(APIView):
+    authentication_classes = [CookieJWTAuthentication]
+    permission_classes = []
+
+    def get(self, request):
+        if request.user and request.user.is_authenticated:
+            return Response({
+                "id": request.user.id,
+                "email": request.user.correo,
+            })
+        return Response({ "id": None })
+
+class RefreshView(APIView):
+    def post(self, request):
+        refresh_token = request.COOKIES.get("refresh")
+
+        if not refresh_token:
+            return Response(status=401)
+
+        refresh = RefreshToken(refresh_token)
+        access = refresh.access_token
+
+        response = Response()
+        response.set_cookie(
+            "access",
+            str(access),
+            httponly=True,
+            secure=True,
+            samesite="None"
+        )
+
+        return response
+
+class LogoutView(APIView):
+    def post(self, request):
+        response = Response()
+
+        response.delete_cookie(
+            key="access",
+            path="/",
+            samesite="None",
+        )
+
+        response.delete_cookie(
+            key="refresh",
+            path="/",
+            samesite="None",
+        )
+        return response
+
+
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
@@ -54,7 +165,6 @@ def registro(request):
 
 @api_view(['POST'])
 def validar_usuario(request):
-    print('Haciendo algo')
     token_str = request.data.get('token')
     if not token_str:
         return Response({'message': 'Token requerido'}, status=400)
@@ -221,15 +331,7 @@ class GestionEvento(RetrieveUpdateDestroyAPIView):
 
         if serializer.is_valid():
             imagen_previa = instance.imagen
-            print('archivo: ---',archivo)
-
-            # s3 = session.Session(
-            #     aws_access_key_id=environ.get('S3_ACCESS_KEY'),
-            #     aws_secret_access_key=environ.get('S3_SECRET_KEY'),
-            #     region_name=environ.get('S3_REGION')
-            # ).client('s3')
             if archivo:
-                print('imprent:',archivo.name)
                 try:
                     resultado = cloudinary.uploader.upload(
                         archivo,
@@ -237,13 +339,6 @@ class GestionEvento(RetrieveUpdateDestroyAPIView):
                         folder= str(instance.id),
                         resource_type='image'
                     )
-                    print(resultado)
-                    # s3.upload_fileobj(
-                    #     archivo,
-                    #     environ.get('S3_BUCKET'),
-                    #     f"{instance.id}/{archivo.name}",
-                    #     ExtraArgs={'ContentType': archivo.content_type}
-                    # )
                 except Exception as e:
                     return Response({
                         "message": "Error subiendo la nueva imagen",
@@ -261,10 +356,6 @@ class GestionEvento(RetrieveUpdateDestroyAPIView):
                             f"{instance.id}/{noExtension(archivo.name)}",
                             resource_type="image"
                         )
-                        # s3.delete_object(
-                        #     Bucket=environ.get('S3_BUCKET'),
-                        #     Key=f"{instance.id}/{archivo.name}"
-                        # )
                     return Response({"message": "Error en BD", "error": str(e)}, status=400)
 
                 # 3) Eliminar la imagen anterior (no afecta consistencia)
@@ -274,10 +365,6 @@ class GestionEvento(RetrieveUpdateDestroyAPIView):
                             f"{instance.id}/{noExtension(imagen_previa)}",
                             resource_type="image"
                         )
-                        # s3.delete_object(
-                        #     Bucket=environ.get('S3_BUCKET'),
-                        #     Key=f"{instance.id}/{imagen_previa}"
-                        # )
                     except:
                         pass  # Solo se pierde limpieza, pero no consistencia
             
@@ -324,70 +411,11 @@ def eliminarImagen(request,id):
         return Response({
             'message':'Evento no existe'
         })
-    
-# class GestionParticipantes(ListCreateAPIView):
-#     queryset = Participante.objects.all()
-#     serializer_class = ParticipanteSerializer
-
-# class GestionParticipante(RetrieveUpdateDestroyAPIView):
-#     queryset = Participante.objects.all()
-#     serializer_class = ParticipanteSerializer
-    
-# class GestionParticipaciones(ListCreateAPIView):
-#     queryset = Participacion.objects.all()
-#     serializer_class = ParticipacionSerializer
-
-    # def create(self, request):
-    #     serializer = ParticipacionSerializer(data=request.data)
-    #     if serializer.is_valid():
-    #         evento = serializer.validated_data.get('eventoId')
-    #         participante = serializer.validated_data.get('participanteId')
-    #         participacionEncontrada = Participacion.objects.filter(eventoId=evento,participanteId=participante).first()
-    #         if participacionEncontrada:
-    #             return Response({
-    #             'message':'Participacion ya existe',
-    #         }, status=status.HTTP_405_METHOD_NOT_ALLOWED)
-
-    #         serializer.save()
-
-    #         return Response({
-    #             'message':'Creacion exitosa',
-    #             'content' : serializer.data
-    #         })
-            
-    #     else:
-    #         return Response({
-    #             'message':'Error crear participacion',
-    #             'content' : serializer.errors
-    #         })
-
-# class EliminarParticipacion(DestroyAPIView):
-#     queryset = Participacion.objects.all()
-#     serializer_class = ParticipacionSerializer
-       
-# @api_view(['GET'])
-# def obtenerParticipaciones(request,id):
-#     eventoEncontrado = Evento.objects.filter(id=id).first()
-#     if eventoEncontrado:
-#         participaciones = Participacion.objects.filter(eventoId=eventoEncontrado.id)
-#         resultado = ParticipanteSerializer(instance=[p.participanteId for p in participaciones], many=True)
-#         print(resultado)
-#         return Response(data={
-#                 'message': 'Los participantes son',
-#                 'content': resultado.data
-#             })
-#     else:
-#         return Response({
-#             'message':'Evento no existe'
-#         })
 
 class GestionInscripciones(ListCreateAPIView):
     serializer_class = ParticipacionSerializer
     permission_classes = [IsAuthenticated]
 
-    # def get_queryset(self):
-    #     return Participacion.objects.filter(usuarioId=self.request.user)
-    
     def list(self, request):
         fecha = request.query_params.get('fecha', None)
         search = request.query_params.get('search', None)
@@ -438,9 +466,6 @@ class GestionInscripciones(ListCreateAPIView):
             'content': serializer.data
         }, status=status.HTTP_201_CREATED)
     
-    # def perform_create(self, serializer):
-    #     # Crear inscripción asociada automáticamente al usuario
-    #     serializer.save(usuarioId=self.request.user)
 
 class GestionInscripcion(RetrieveUpdateDestroyAPIView):
     serializer_class = ParticipacionSerializer
@@ -477,9 +502,6 @@ class EstadoInscripcionEvento(APIView):
             eventoId=evento_id
         ).first()
 
-        print(usuario_id)
-        print(evento_id)
-        print(inscripcion.tipoUsuario)
 
         return Response(data = {
             "estado": inscripcion.tipoUsuario if inscripcion else None

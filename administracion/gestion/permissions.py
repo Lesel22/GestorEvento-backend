@@ -9,7 +9,6 @@ class EsAdmin(BasePermission):
         if request.method == 'GET':
             return True
         
-        print(request.user.is_anonymous)
         tipoUsuario = request.user.tipoUsuario
 
         return tipoUsuario == '1'
