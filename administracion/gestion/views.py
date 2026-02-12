@@ -135,6 +135,9 @@ class LogoutView(APIView):
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
 
+
+import threading
+
 @api_view(['POST'])
 def registro(request):
     serializador= UsuarioSerializer(data=request.data)
@@ -158,7 +161,12 @@ def registro(request):
             token=EmailVerificationToken.generate_token(),
             expires_at=EmailVerificationToken.expiration_time()
         )
-        enviar_correo_validacion(usuario.correo, token.token)
+
+        # enviar_correo_validacion(usuario.correo, token.token)
+        threading.Thread(
+            target=enviar_correo_validacion,
+            args=(usuario.correo, token.token)
+        ).start()
 
         return Response({
             'message': 'Usuario registrado. Revisa tu correo para validar la cuenta.'
