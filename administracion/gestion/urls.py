@@ -24,6 +24,7 @@ urlpatterns = [
     path(auth + "me", MeView.as_view(), name="me"),
     path(auth + "refresh", RefreshView.as_view(), name="refresh"),
     path(auth + "logout", LogoutView.as_view(), name="logout"),
+    path(auth + "register", registro, name="logout"),
 
 
 

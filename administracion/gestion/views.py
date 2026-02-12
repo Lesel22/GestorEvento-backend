@@ -144,6 +144,7 @@ def registro(request):
             'content': serializador.errors
         }, status=status.HTTP_400_BAD_REQUEST)   
     else:
+        #usuario = serializador.save()
         usuario = Usuario(
             nombre=serializador.validated_data['nombre'],
             apellido=serializador.validated_data['apellido'],
