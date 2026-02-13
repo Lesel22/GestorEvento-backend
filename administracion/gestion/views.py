@@ -174,7 +174,7 @@ def registro(request):
 
 @api_view(['POST'])
 def validar_usuario(request):
-    token_str = request.data.get('token')
+    token_str = request.data
     if not token_str:
         return Response({'message': 'Token requerido'}, status=400)
 
@@ -199,20 +199,36 @@ def validar_usuario(request):
     token_obj.is_used = True
     token_obj.save()
 
-    # Genera JWT para login automático
+    # Generar JWT
     refresh = RefreshToken.for_user(usuario)
-    token = {}
-    token['nombre'] = usuario.nombre
-    token['apellido'] = usuario.apellido
-    token['correo'] = usuario.correo
-    token['id'] = str(usuario.id)
-    token['refresh'] = str(refresh)
-    token['access'] = str(refresh.access_token)
+    access = refresh.access_token
 
-    return Response({
+    response = Response({
         'message': 'Cuenta validada correctamente',
-        'token': token
-    }, status=200)
+        'user': {
+            'id': usuario.id,
+            'email': usuario.correo,
+        }
+    })
+
+    # 👇 Igual que en tu LoginView
+    response.set_cookie(
+        key="access",
+        value=str(access),
+        httponly=True,
+        secure=True,
+        samesite="None",
+    )
+
+    response.set_cookie(
+        key="refresh",
+        value=str(refresh),
+        httponly=True,
+        secure=True,
+        samesite="None",
+    )
+
+    return response
 
 class GestionEventos(ListCreateAPIView):
     queryset = Evento.objects.all()

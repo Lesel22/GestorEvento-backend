@@ -51,28 +51,114 @@ def get_content_type(filename):
     _, ext = os.path.splitext(filename.lower())
     return CONTENT_TYPES.get(ext, 'application/octet-stream')
 
-def enviar_correo_validacion(destinatario, token):
+
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
+
+def enviar_correo_validacion(destinatario: str, token: str):
     link = f"{settings.FRONTEND_URL}/habilitar-usuario?token={token}"
 
-    subject = 'Valida tu cuenta'
-    from_email = settings.DEFAULT_FROM_EMAIL
-    to = [destinatario]
+    html_content = f"""
+    <html>
+    <body style="font-family: Arial, sans-serif; background:#f4f4f4; padding:20px;">
+      <table width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          <td align="center">
+            <table width="600" style="background:white; padding:30px; border-radius:8px;">
+              <tr>
+                <td align="center">
+                  <h2 style="color:#333;">Bienvenido a Calenda 🎉</h2>
+                  <p style="color:#555;">
+                    Gracias por registrarte. Para activar tu cuenta haz clic en el botón:
+                  </p>
+
+                  <a href="{link}"
+                     style="display:inline-block;
+                            background:#4CAF50;
+                            color:white;
+                            padding:12px 24px;
+                            text-decoration:none;
+                            border-radius:5px;
+                            margin:20px 0;">
+                    Verificar cuenta
+                  </a>
+
+                  <p style="color:#777; font-size:14px;">
+                    Si el botón no funciona, copia y pega este enlace en tu navegador:
+                  </p>
+
+                  <p style="font-size:12px; color:#999;">
+                    {link}
+                  </p>
+
+                  <hr style="margin:30px 0;">
+                  <p style="font-size:12px; color:#aaa;">
+                    Si no solicitaste esta cuenta, puedes ignorar este correo.
+                  </p>
+                  <p style="font-size:12px; color:#aaa;">
+                    © 2026 Calenda
+                  </p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+    """
 
     text_content = f"""
-    Bienvenido.
-    Valida tu cuenta aquí:
+    Bienvenido a Calenda
+
+    Para activar tu cuenta visita:
     {link}
+
+    Si no solicitaste esta cuenta, ignora este mensaje.
+
+    © 2026 Calenda
     """
 
-    html_content = f"""
-    <h3>Bienvenido</h3>
-    <p>
-        Haz click en el siguiente
-        <a href="{link}">enlace</a>
-        para validar tu cuenta.
-    </p>
-    """
+    mensaje = Mail(
+        from_email=settings.EMAIL_FROM,
+        to_emails=destinatario,
+        subject="Verifica tu cuenta en Calenda",
+        html_content=html_content,
+        plain_text_content=text_content,
+    )
 
-    email = EmailMultiAlternatives(subject, text_content, from_email, to)
-    email.attach_alternative(html_content, "text/html")
-    email.send()
+    try:
+        sg = SendGridAPIClient(settings.SENDGRID_API_KEY)
+        respuesta = sg.send(mensaje)
+        print("Email enviado. Status:", respuesta.status_code)
+        return respuesta.status_code
+    except Exception as e:
+        print("Error enviando correo:", str(e))
+        return None
+
+
+# def enviar_correo_validacion(destinatario, token):
+#     link = f"{settings.FRONTEND_URL}/habilitar-usuario?token={token}"
+
+#     subject = 'Valida tu cuenta'
+#     from_email = settings.DEFAULT_FROM_EMAIL
+#     to = [destinatario]
+
+#     text_content = f"""
+#     Bienvenido.
+#     Valida tu cuenta aquí:
+#     {link}
+#     """
+
+#     html_content = f"""
+#     <h3>Bienvenido</h3>
+#     <p>
+#         Haz click en el siguiente
+#         <a href="{link}">enlace</a>
+#         para validar tu cuenta.
+#     </p>
+#     """
+
+#     email = EmailMultiAlternatives(subject, text_content, from_email, to)
+#     email.attach_alternative(html_content, "text/html")
+#     email.send()

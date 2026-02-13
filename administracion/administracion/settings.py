@@ -203,7 +203,8 @@ cloudinary.config(
     secure=True
 )
 
-
+SENDGRID_API_KEY = environ.get("SENDGRID_API_KEY")
+EMAIL_FROM = environ.get("EMAIL_FROM")
 
 # CLOUDINARY_STORAGE = {
 #     'CLOUD_NAME': environ.get('CLOUDINARY_NAME'),
