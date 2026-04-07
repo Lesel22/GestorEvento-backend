@@ -52,6 +52,23 @@ def get_content_type(filename):
     return CONTENT_TYPES.get(ext, 'application/octet-stream')
 
 
+
+def enviar_verificacion(usuario, token):
+    if not settings.USE_REAL_EMAIL:
+        simular_correo(usuario, token)
+    else: # tal vez necesita Threading, podria no ser la mejor opcion
+        enviar_correo_validacion(usuario, token)
+
+def simular_correo(usuario, token):
+    link = f"{settings.FRONTEND_URL}/habilitar-usuario?token={token}"
+    
+    print("\n" + "="*50)
+    print("📩 CORREO SIMULADO")
+    print(f"Para: {usuario}")
+    print("Asunto: Verifica tu cuenta")
+    print(f"Link: {link}")
+    print("="*50 + "\n")
+
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
 

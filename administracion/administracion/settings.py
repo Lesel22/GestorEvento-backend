@@ -29,6 +29,9 @@ SECRET_KEY = 'django-insecure-@-lbouasfikoan^67n$v&ynuo*v75_fnr#fh8vho62is9w0^$y
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
+#Pruebas de simulacion de envio
+USE_REAL_EMAIL = False
+
 ALLOWED_HOSTS = [
     "127.0.0.1",
     "localhost",
@@ -169,10 +172,14 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 #Autentification settings
 AUTH_USER_MODEL = 'gestion.Usuario' #El modelo ya tiene un auth user, estamos definiendo que use el nuestro
 
+# REST_FRAMEWORK = {
+#     'DEFAULT_AUTHENTICATION_CLASSES':[ 'rest_framework_simplejwt.authentication.JWTAuthentication',],
+# }
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES':[ 'rest_framework_simplejwt.authentication.JWTAuthentication',],
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'gestion.auth.CookieJWTAuthentication',
+    ),
 }
-
 from datetime import timedelta
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),

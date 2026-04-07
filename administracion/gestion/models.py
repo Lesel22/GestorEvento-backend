@@ -48,27 +48,45 @@ class EmailVerificationToken(models.Model):
     def expiration_time():
         return timezone.now() + timedelta(hours=24)
 
+class EventoManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().filter(eliminado=False)
+    
 class Evento(models.Model):
+    objects = EventoManager()
+    all_objects = models.Manager()  # acceso total
+    
     id = models.UUIDField(default=uuid4, primary_key=True, editable=False)
-    imagen = models.TextField(null=True) # Cambio de ImageField
-    nombre = models.TextField()
-    fecha = models.DateTimeField()
-    lugar = models.TextField()
+    imagen = models.URLField(blank=True, null=True) # Cambio de ImageField
+    imagen_public_id = models.CharField(max_length=255, null=True)
+    nombre = models.CharField(max_length=255)
+    lugar = models.CharField(max_length=255)
+    fecha = models.DateField()
     descripcion = models.TextField(null=True)
-    createdAt = models.DateTimeField(null=False, auto_now_add=True)
-    updatedAt = models.DateTimeField(null=False, auto_now=True)
+    estado = models.CharField(
+        max_length=20,
+        choices=[
+            ('activo', 'Activo'),
+            ('cancelado', 'Cancelado'),
+            ('finalizado', 'Finalizado')
+        ],
+        default='activo'
+    )
+    eliminado = models.BooleanField(default=False)
+    created_at = models.DateTimeField(null=False, auto_now_add=True)
+    updated_at = models.DateTimeField(null=False, auto_now=True)
 
-    usuarioId = models.ForeignKey(to=Usuario,
+    propietario = models.ForeignKey(to=Usuario,
                                     db_column='organizador_id',
                                     on_delete=models.PROTECT,
-                                    related_name='organizaciones')
+                                    related_name='eventos')
 
     class Meta:
         db_table = 'eventos'
 
 class Participacion(models.Model):
     TIPO_PARTICIPACION = [
-        ('1','Propietario'),
+        ('1','Colaborador'),
         ('2','Asistente'),
         ('3','Participante')
     ]
@@ -89,3 +107,21 @@ class Participacion(models.Model):
 
     class Meta:
         db_table = 'participaciones'
+
+
+#Algun dia si hay ganas
+# class EventoImagen(models.Model):
+#     id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
+
+#     evento = models.ForeignKey(
+#         Evento,
+#         on_delete=models.CASCADE,
+#         related_name="imagenes"
+#     )
+
+#     url = models.TextField()
+
+#     orden = models.IntegerField(default=0)
+#     es_portada = models.BooleanField(default=False)
+
+#     createdAt = models.DateTimeField(auto_now_add=True)
