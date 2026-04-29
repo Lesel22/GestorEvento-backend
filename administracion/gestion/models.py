@@ -7,6 +7,7 @@ from datetime import timedelta
 from datetime import datetime
 from django.utils.timezone import now, make_aware
 
+# Profundizar superuser ROOT
 class ManejadorUsuario(BaseUserManager):
     def create_superuser(self, nombre, correo, password):
         if not correo:
