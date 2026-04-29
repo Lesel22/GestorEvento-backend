@@ -9,8 +9,10 @@ from .models import Evento,  Participacion, Usuario, EmailVerificationToken
 from .serializers import EventoSerializer,  ParticipacionSerializer, UsuarioSerializer, ParticipacionSerializer2, ParticipacionUsuarioSerializer
 from django.db import transaction
 from django.db.models import Prefetch
+from django.db.models import Case, When, Value, IntegerField
 import json
 from .utils import enviar_verificacion, noExtension
+from .pagination import CustomPagination
 from django.utils import timezone
 from rest_framework_simplejwt.tokens import RefreshToken
 import cloudinary
@@ -236,6 +238,7 @@ def validar_usuario(request):
 class GestionEventos(ListCreateAPIView):
     queryset = Evento.objects.all()
     serializer_class = EventoSerializer
+    pagination_class = CustomPagination #Nuevo
 
     def get_queryset(self):
         user = self.request.user
@@ -265,13 +268,44 @@ class GestionEventos(ListCreateAPIView):
         if own == 'True' and request.user.is_authenticated:
             params['propietario'] = request.user
 
-        eventos = self.get_queryset().filter(**params).order_by('-nombre')
-        serializer = EventoSerializer(eventos, many=True, context={"request":request})
+        queryset = self.get_queryset().filter(**params).order_by("-nombre")
 
-        return Response({
-            'message': 'Eventos encontrados',
-            'content': serializer.data
-        })
+        if request.user.is_authenticated and own != "True":
+            queryset = queryset.annotate(
+                prioridad=Case(
+                    When(propietario=request.user, then=Value(1)),
+                    default=Value(0),
+                    output_field=IntegerField()
+                )
+            ).order_by("prioridad", "-created_at")
+        else:
+            queryset = queryset.order_by("-created_at")
+
+        # aplicar paginación aquí
+        page = self.paginate_queryset(queryset)
+
+        if page is not None:
+            serializer = self.get_serializer(
+                page,
+                many=True,
+                context={"request": request}
+            )
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(
+            queryset,
+            many=True,
+            context={"request": request}
+        )
+
+        return Response(serializer.data)
+        # eventos = self.get_queryset().filter(**params).order_by('-nombre')
+        # serializer = EventoSerializer(eventos, many=True, context={"request":request})
+
+        # return Response({
+        #     'message': 'Eventos encontrados',
+        #     'content': serializer.data
+        # })
     
     def create(self, request):
         archivo = request.FILES.get('imagen')
@@ -281,7 +315,7 @@ class GestionEventos(ListCreateAPIView):
 
         if not serializer.is_valid():
             return Response({
-                "message": "Error al crear evento al serealizar",
+                "message": "Error al crear evento",
                 "errors": serializer.errors
             }, status=status.HTTP_400_BAD_REQUEST)
 
@@ -305,7 +339,7 @@ class GestionEventos(ListCreateAPIView):
 
                 return Response({
                     "message": "Evento y participación creados con éxito",
-                    "content": EventoSerializer(evento).data
+                    "content": EventoSerializer(evento,context={'request': request}).data
                 }, status=status.HTTP_201_CREATED)
 
         except Exception as e:
@@ -318,6 +352,21 @@ class GestionEvento(RetrieveUpdateDestroyAPIView):
     queryset = Evento.objects.all()
     serializer_class = EventoSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
+
+    def get_queryset(self):
+        user = self.request.user
+        queryset = Evento.objects.all()
+
+        if user.is_authenticated:
+            queryset = queryset.prefetch_related(
+                Prefetch(
+                    'inscripciones',
+                    queryset=Participacion.objects.filter(usuarioId=user),
+                    to_attr='user_participacion'
+                )
+            )
+
+        return queryset
 
     #Soft delete
     def destroy(self, request, *args, **kwargs):
@@ -441,6 +490,7 @@ class GestionEvento(RetrieveUpdateDestroyAPIView):
 class GestionInscripciones(ListCreateAPIView):
     serializer_class = ParticipacionSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = CustomPagination #Nuevo
     
     def list(self, request):
         fecha = request.query_params.get('fecha', None)
@@ -455,13 +505,19 @@ class GestionInscripciones(ListCreateAPIView):
         if own == 'True' and request.user.is_authenticated:
             params['usuarioId_id'] = request.user
 
-        participaciones = Participacion.objects.filter(**params).select_related('eventoId')
-        serializer = ParticipacionSerializer(participaciones, many=True)
+        
+        queryset = Participacion.objects.filter(**params).select_related("eventoId")
 
-        return Response({
-            'message': 'Eventos encontrados',
-            'content': serializer.data
-        })
+        # aplicar paginación
+        page = self.paginate_queryset(queryset)
+
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+
+        return Response(serializer.data)
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -507,6 +563,7 @@ class EstadoInscripcionEvento(APIView):
         ).first()
 
         relacion = inscripcion.tipoUsuario if inscripcion else None
+        id = inscripcion.id if inscripcion else None
         
         #puede ser el propietario
         if (not relacion):
@@ -518,8 +575,9 @@ class EstadoInscripcionEvento(APIView):
             if propietario: 
                 relacion = '0'
         
-
+        print(inscripcion)
         return Response(data = {
+            "id": id,
             "estado": relacion
         })
     
@@ -553,6 +611,6 @@ class GestionParticipaciones(APIView):
         serializer = ParticipacionUsuarioSerializer(participantes, many=True, context={"request":request})
 
         return Response({
-            'message': 'Eventos encontrados',
+            'message': 'Participaciones encontrados',
             'content': serializer.data
         })

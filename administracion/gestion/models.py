@@ -4,6 +4,8 @@ from django.contrib.auth.models import BaseUserManager, AbstractBaseUser, Permis
 import secrets
 from django.utils import timezone
 from datetime import timedelta
+from datetime import datetime
+from django.utils.timezone import now, make_aware
 
 class ManejadorUsuario(BaseUserManager):
     def create_superuser(self, nombre, correo, password):
@@ -61,7 +63,13 @@ class Evento(models.Model):
     imagen_public_id = models.CharField(max_length=255, null=True)
     nombre = models.CharField(max_length=255)
     lugar = models.CharField(max_length=255)
+    latitud = models.FloatField(null=True, blank=True)
+    longitud = models.FloatField(null=True, blank=True)
+    referencia = models.CharField(null=True, blank=True) 
     fecha = models.DateField()
+    hora_inicio = models.TimeField(null=True, blank=True)
+    hora_fin = models.TimeField(null=True, blank=True)
+    limite_participantes = models.PositiveIntegerField(null=True, blank=True)
     descripcion = models.TextField(null=True)
     estado = models.CharField(
         max_length=20,
@@ -80,6 +88,30 @@ class Evento(models.Model):
                                     db_column='organizador_id',
                                     on_delete=models.PROTECT,
                                     related_name='eventos')
+    
+    @property
+    def estado_evento(self):
+        if self.estado == "cancelado":
+            return "Cancelado"
+
+        fecha_evento = make_aware(datetime.combine(self.fecha, self.hora_inicio))
+
+        if fecha_evento < now():
+            return "Finalizado"
+
+        return "Activo"
+    
+    # @property
+    # def duracion(self):
+    #     if self.estado == "cancelado":
+    #         return "Cancelado"
+
+    #     fecha_evento = make_aware(datetime.combine(self.fecha, self.hora_inicio))
+
+    #     if fecha_evento < now():
+    #         return "Finalizado"
+
+    #     return "Activo"
 
     class Meta:
         db_table = 'eventos'
